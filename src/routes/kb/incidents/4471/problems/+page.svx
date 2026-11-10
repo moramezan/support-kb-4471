@@ -1,0 +1,47 @@
+---
+layout: runbook
+title: '#4471 · what the merged reports show'
+owner: Max Ramezan
+status: open
+reviewed: 2026-11-10
+signature: Max Ramezan
+---
+
+<script>
+  import ProblemTable from '#lib/kb/ProblemTable.svelte';
+  import Callout from '#lib/kb/Callout.svelte';
+  import RenderStamp from '#lib/kb/RenderStamp.svelte';
+</script>
+
+[#4471](/kb/incidents/4471) is marked *known: one issue, one fix queued*. Its reports describe
+more than one bug. They were merged because their subject lines matched
+([decision 0001](/kb/decisions/0001-dedupe-by-subject)), not because they share a cause.
+
+<Callout kind="warn">
+The queued parser fix does not close every report in #4471. Each problem below has its own ticket.
+</Callout>
+
+## The problems in #4471
+
+<ProblemTable ticket={4471} />
+
+## How each report is placed
+
+1. **One id, one report.** The export pages overlap, so the same report can appear more than once. Repeats are dropped before anything is counted.
+2. **A one-day move first.** Reports in which the date moves by a day (Tuesday shows as Monday, one meeting on two days in two time zones) are a different bug. A day/month swap moves a date by months, and no locale setting moves it by one day. The desk listed these reports in `desk-notes.json`. The old table counted them under `parser` and footnoted them. Here they count as their own problem.
+3. **Then by tenant, not by intake tag.** A day-first tenant's reports through the app, email, or a booking-v2 form went through the shared parser. Form reports from a booking-v3 tenant came through the `MM/DD/YYYY` hint (`causes.ts`). The intake tag comes from the reporter's browser, which is often not the tenant's locale, so intake often picks the wrong problem: see *intake agreed*.
+
+I read the bodies to check this. Every body that gives both dates is an exact day/month swap, apart from the one-day moves. The few bodies that give no dates (a request for a "day first" setting, a client who now gives dates in words, October bookings that came through for January) are filed under their tenant's cause.
+
+## What changes for the desk
+
+- Do not close #4471 when the parser fix ships. Close each ticket when its own fix ships.
+- The hint problem lives in the booking-v3 form, not in the parser. The parser fix leaves the hint unchanged.
+- The one-day problem is about time zones. It moves the date by a day, and the day/month fixes do not touch it.
+- Subject-line dedupe put all three problems into one ticket. Until decision 0001 is replaced, check a merged ticket's bodies before you mark it known.
+
+## Report ids
+
+<ProblemTable ticket={4471} ids />
+
+<RenderStamp {signature} />
