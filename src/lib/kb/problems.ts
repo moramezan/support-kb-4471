@@ -1,10 +1,10 @@
-// The problems inside a merged ticket. causes.ts says which code path a report went through;
-// this file also takes out the reports the desk itself read differently (desk-notes.json):
-// those are a different bug, not a footnote.
+// The problems inside a merged ticket. Counts follow the desk's own view (causes.ts): every report
+// is filed under its tenant's cause. Reports the desk read differently (desk-notes.json) stay
+// filed there, and are also tracked as a problem of their own: a one-day move is not a swap.
 import notes from '#lib/data/desk-notes.json';
-import { causeOf, uniqueById, type Report, type Tenant } from '#lib/kb/causes';
+import { groupByCause, uniqueById, type CauseGroup, type Report, type Tenant } from '#lib/kb/causes';
 
-export type Problem = 'parser' | 'hint' | 'one-day' | 'unplaced';
+export type Problem = CauseGroup['cause'] | 'one-day';
 
 export const PROBLEMS: Record<Problem, { title: string; what: string }> = {
   parser: {
@@ -32,41 +32,44 @@ export const TICKETS: Partial<Record<Problem, string>> = {
   'one-day': 'https://github.com/moramezan/support-kb-4471/issues/3',
 };
 
-export function problemOf(r: Report, t: Tenant | undefined, oneDayMove: readonly string[] = notes.oneDayMove): Problem {
-  if (oneDayMove.includes(r.id)) return 'one-day';
-  return causeOf(r, t) ?? 'unplaced';
-}
-
-export type ProblemGroup = {
+export type ProblemRow = {
   problem: Problem;
   reports: Report[];
+  filedUnder: CauseGroup['cause'] | null; // set on a row that is a subset of another row
   tenants: string[];
   channels: Record<string, number>;
-  intakeAgrees: number; // reports whose intake tag names this same problem
+  intakeAgrees: number | null;
   firstSeen: string;
   lastSeen: string;
 };
 
-export function problemsIn(all: Report[], ticket: number, tenantOf: (r: Report) => Tenant | undefined): { merged: Report[]; groups: ProblemGroup[] } {
+function row(problem: Problem, rs: Report[], filedUnder: ProblemRow['filedUnder']): ProblemRow {
+  const days = rs.map((r) => r.receivedAt.slice(0, 10)).sort();
+  return {
+    problem,
+    reports: rs,
+    filedUnder,
+    tenants: [...new Set(rs.map((r) => r.tenant))].sort(),
+    channels: rs.reduce<Record<string, number>>((n, r) => ({ ...n, [r.channel]: (n[r.channel] ?? 0) + 1 }), {}),
+    intakeAgrees: filedUnder ? null : rs.filter((r) => r.meta.intakeTag === problem).length,
+    firstSeen: days[0],
+    lastSeen: days[days.length - 1],
+  };
+}
+
+export function problemsIn(
+  all: Report[],
+  ticket: number,
+  tenantOf: (r: Report) => Tenant | undefined,
+  oneDayMove: readonly string[] = notes.oneDayMove,
+): { merged: Report[]; rows: ProblemRow[]; filed: number } {
   const merged = uniqueById(all).filter((r) => r.mergedInto === ticket);
-  const by = new Map<Problem, Report[]>();
-  for (const r of merged) {
-    const p = problemOf(r, tenantOf(r));
-    by.set(p, [...(by.get(p) ?? []), r]);
+  const groups = groupByCause(merged, tenantOf);
+  const rows: ProblemRow[] = [];
+  for (const g of groups) {
+    rows.push(row(g.cause, g.reports, null));
+    const moved = g.reports.filter((r) => oneDayMove.includes(r.id));
+    if (moved.length) rows.push(row('one-day', moved, g.cause));
   }
-  const groups = [...by.entries()]
-    .map(([problem, rs]) => {
-      const days = rs.map((r) => r.receivedAt.slice(0, 10)).sort();
-      return {
-        problem,
-        reports: rs,
-        tenants: [...new Set(rs.map((r) => r.tenant))].sort(),
-        channels: rs.reduce<Record<string, number>>((n, r) => ({ ...n, [r.channel]: (n[r.channel] ?? 0) + 1 }), {}),
-        intakeAgrees: rs.filter((r) => r.meta.intakeTag === problem).length,
-        firstSeen: days[0],
-        lastSeen: days[days.length - 1],
-      };
-    })
-    .sort((a, b) => b.reports.length - a.reports.length);
-  return { merged, groups };
+  return { merged, rows, filed: groups.reduce((n, g) => n + g.reports.length, 0) };
 }

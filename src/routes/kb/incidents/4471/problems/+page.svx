@@ -28,8 +28,8 @@ The queued parser fix does not close every report in #4471. Each problem below h
 ## How each report is placed
 
 1. **One id, one report.** The export pages overlap, so the same report can appear more than once. Repeats are dropped before anything is counted.
-2. **A one-day move first.** Reports in which the date moves by a day (Tuesday shows as Monday, one meeting on two days in two time zones) are a different bug. A day/month swap moves a date by months, and no locale setting moves it by one day. The desk listed these reports in `desk-notes.json`. The old table counted them under `parser` and footnoted them. Here they count as their own problem.
-3. **Then by tenant, not by intake tag.** A day-first tenant's reports through the app, email, or a booking-v2 form went through the shared parser. Form reports from a booking-v3 tenant came through the `MM/DD/YYYY` hint (`causes.ts`). The intake tag comes from the reporter's browser, which is often not the tenant's locale, so intake often picks the wrong problem: see *intake agreed*.
+2. **By tenant, not by intake tag.** A day-first tenant's reports through the app, email, or a booking-v2 form went through the shared parser. Form reports from a booking-v3 tenant came through the `MM/DD/YYYY` hint (`causes.ts`). The intake tag comes from the reporter's browser, which is often not the tenant's locale, so intake often picks the wrong problem: see *intake agreed*.
+3. **One-day moves are their own problem too.** In some reports the date moves by one day (Tuesday shows as Monday, one meeting on two days in two time zones). A day/month swap moves a date by months, and no locale setting moves it by one day. The desk listed these reports in `desk-notes.json`. They stay filed and counted under their tenant's cause, as the desk counts them, and they also have their own ticket.
 
 I read the bodies to check this. Every body that gives both dates is an exact day/month swap, apart from the one-day moves. The few bodies that give no dates (a request for a "day first" setting, a client who now gives dates in words, October bookings that came through for January) are filed under their tenant's cause.
 
