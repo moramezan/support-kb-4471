@@ -2,7 +2,7 @@
 layout: runbook
 title: '#4471 · what the merged reports show'
 owner: Max Ramezan
-status: open
+status: living
 reviewed: 2026-11-10
 signature: Max Ramezan
 ---
@@ -25,6 +25,14 @@ The queued parser fix does not close every report in #4471. Each problem below h
 
 <ProblemTable ticket={4471} />
 
+## Where each problem stands
+
+Engineering closed #4471 on 5 October.
+
+- **Parser** ([#1](https://github.com/moramezan/support-kb-4471/issues/1)): fixed by `fix(dates): parse dd/mm for eu locales`. Closed.
+- **Hint** ([#2](https://github.com/moramezan/support-kb-4471/issues/2)): won't fix, because the booking-v3 form was retired. Closed as not planned. No new reports can come through that form.
+- **One-day move** ([#3](https://github.com/moramezan/support-kb-4471/issues/3)): not in the engineering update. The parser fix does not touch it, so it stays open. A report about it is not a duplicate of #4471.
+
 ## How each report is placed
 
 1. **One id, one report.** The export pages overlap, so the same report can appear more than once. Repeats are dropped before anything is counted.
@@ -35,8 +43,8 @@ I read the bodies to check this. Every body that gives both dates is an exact da
 
 ## What changes for the desk
 
-- Do not close #4471 when the parser fix ships. Close each ticket when its own fix ships.
-- The hint problem lives in the booking-v3 form, not in the parser. The parser fix leaves the hint unchanged.
+- Closing #4471 did not close every problem in it. Close each ticket when its own fix ships.
+- The hint problem lived in the booking-v3 form, not in the parser. The parser fix left it unchanged. Retiring the form ended it.
 - The one-day problem is about time zones. It moves the date by a day, and the day/month fixes do not touch it.
 - Subject-line dedupe put all three problems into one ticket. Until decision 0001 is replaced, check a merged ticket's bodies before you mark it known.
 
